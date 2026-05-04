@@ -11,7 +11,7 @@ Persönlicher, dunkler, mobile-first Habit- & Lebens-Tracker.
 | Etappe | Inhalt | Status |
 |---|---|---|
 | **1** | Setup, Auth (Magic Link), App-Shell, Bottom-Nav, Sidebar, Stub-Pages, DB-Schema | ✅ fertig |
-| 2a | Notes-Tab (Reflexion, Quick Notes, Bücher, Ideas) | offen |
+| **2a** | Notes-Tab (Reflexion, Quick Notes, Bücher, Ideas) | ✅ fertig |
 | 2b | Body-Tab (Workouts, Sets, Heatmap, Nutrition, Vitals) | offen |
 | 2c | Settings-Tab (Habits-CRUD, Theme, Export) | offen |
 | 3 | Home + Habits mit Live-Daten, Streak-Logik, End-Day-Modal | offen |
