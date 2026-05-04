@@ -12,6 +12,7 @@ Persönlicher, dunkler, mobile-first Habit- & Lebens-Tracker.
 |---|---|---|
 | **1** | Setup, Auth (Magic Link), App-Shell, Bottom-Nav, Sidebar, Stub-Pages, DB-Schema | ✅ fertig |
 | **2a** | Notes-Tab (Reflexion, Quick Notes, Bücher, Ideas) | ✅ fertig |
+| **2b-money** | Money-Tab Phase 1 (Hauskauf-Plan, Szenarien, Spar-Logs) | ✅ fertig |
 | 2b | Body-Tab (Workouts, Sets, Heatmap, Nutrition, Vitals) | offen |
 | 2c | Settings-Tab (Habits-CRUD, Theme, Export) | offen |
 | 3 | Home + Habits mit Live-Daten, Streak-Logik, End-Day-Modal | offen |
@@ -24,7 +25,9 @@ Persönlicher, dunkler, mobile-first Habit- & Lebens-Tracker.
 ### 1. Supabase-Projekt anlegen
 
 1. Auf [supabase.com](https://supabase.com) ein neues Projekt anlegen (Free Tier reicht).
-2. **SQL Editor → New query** → Inhalt von [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) reinkopieren und ausführen.
+2. **SQL Editor → New query** → Migrationen der Reihe nach ausführen:
+   - [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — Basis-Schema (12 Tabellen)
+   - [`supabase/migrations/0002_house_plan.sql`](supabase/migrations/0002_house_plan.sql) — Hauskauf-Plan-Tabelle (Money-Tab)
 3. **Authentication → Providers → Email** → "Enable Email provider" aktivieren. Magic-Link funktioniert standardmäßig über Supabase-SMTP (für Production eigene SMTP eintragen).
 4. **Authentication → URL Configuration** → unter "Redirect URLs" `http://localhost:3000/auth/callback` eintragen (in Production die Vercel-URL hinzufügen).
 
