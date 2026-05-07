@@ -2,7 +2,9 @@
 
 Persönlicher, dunkler, mobile-first Habit- & Lebens-Tracker.
 
-**Stack:** Next.js 14 (App Router) · TypeScript · Tailwind · shadcn/ui · Supabase (Auth + Postgres + RLS) · Recharts · Framer Motion · Vitest.
+**Stack:** Vite + React 18 + TypeScript + Tailwind + shadcn/ui + lovable-tagger · Supabase (Auth + Postgres + RLS) · TanStack Query · Recharts · Framer Motion · Vitest.
+
+Mit **Lovable** und **Claude Code** parallel editierbar.
 
 ---
 
@@ -10,13 +12,18 @@ Persönlicher, dunkler, mobile-first Habit- & Lebens-Tracker.
 
 | Etappe | Inhalt | Status |
 |---|---|---|
-| **1** | Setup, Auth (Magic Link), App-Shell, Bottom-Nav, Sidebar, Stub-Pages, DB-Schema | ✅ fertig |
-| **2a** | Notes-Tab (Reflexion, Quick Notes, Bücher, Ideas) | ✅ fertig |
-| **2b-money** | Money-Tab Phase 1 (Hauskauf-Plan, Szenarien, Spar-Logs) | ✅ fertig |
-| 2b | Body-Tab (Workouts, Sets, Heatmap, Nutrition, Vitals) | offen |
-| 2c | Settings-Tab (Habits-CRUD, Theme, Export) | offen |
-| 3 | Home + Habits mit Live-Daten, Streak-Logik, End-Day-Modal | offen |
+| **1** | Vite-Scaffold, Layout (Sidebar/BottomNav), Theme, Habits-Components (Dexie) | ✅ aus dem Lovable-Scaffold |
+| **2-Auth** | Supabase-Client, Magic-Link Login, ProtectedRoute, /setup-Page | ✅ fertig |
+| **2a** | Notes-Tab (Reflexion, Quick Notes, Bücher, Ideas) — Supabase | ✅ fertig |
+| **2b-money** | Money-Tab (Hauskauf-Plan, 3 Szenarien, Spar-Logs) — Supabase | ✅ fertig |
+| **2b-body** | Body-Tab (Workouts, Sets, Heatmap, Nutrition, Vitals) — Supabase | ✅ fertig |
+| 2c | Settings-Tab (Habits-CRUD, Theme-Toggle, Export) | offen |
+| 3 | Home + Habits zu Supabase migrieren (aktuell Dexie) | offen |
 | 4 | PWA, Push-Notifications, Tastatur-Shortcuts | offen |
+
+> **Daten-Split**: Notes / Money / Body laufen über Supabase mit Auth.
+> Index (Home) / Habits laufen weiter lokal über Dexie/IndexedDB —
+> diese Migration zu Supabase ist Etappe 3.
 
 ---
 
@@ -25,11 +32,13 @@ Persönlicher, dunkler, mobile-first Habit- & Lebens-Tracker.
 ### 1. Supabase-Projekt anlegen
 
 1. Auf [supabase.com](https://supabase.com) ein neues Projekt anlegen (Free Tier reicht).
-2. **SQL Editor → New query** → Migrationen der Reihe nach ausführen:
-   - [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — Basis-Schema (12 Tabellen)
-   - [`supabase/migrations/0002_house_plan.sql`](supabase/migrations/0002_house_plan.sql) — Hauskauf-Plan-Tabelle (Money-Tab)
-3. **Authentication → Providers → Email** → "Enable Email provider" aktivieren. Magic-Link funktioniert standardmäßig über Supabase-SMTP (für Production eigene SMTP eintragen).
-4. **Authentication → URL Configuration** → unter "Redirect URLs" `http://localhost:3000/auth/callback` eintragen (in Production die Vercel-URL hinzufügen).
+2. **SQL Editor → New query** → die Migrationen der Reihe nach ausführen:
+   - [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql) — Basis-Schema (12 Tabellen + RLS + Profile-Trigger)
+   - [`supabase/migrations/0002_house_plan.sql`](supabase/migrations/0002_house_plan.sql) — Hauskauf-Plan
+3. **Authentication → Providers → Email** → Email-Provider aktivieren.
+4. **Authentication → URL Configuration → Redirect URLs** → deine Deploy-URL eintragen, z. B.:
+   - `http://localhost:8080/auth/callback` (lokal)
+   - `https://deine-app.vercel.app/auth/callback` (production)
 
 ### 2. Env-Variablen
 
@@ -37,12 +46,7 @@ Persönlicher, dunkler, mobile-first Habit- & Lebens-Tracker.
 cp .env.local.example .env.local
 ```
 
-Dann `.env.local` füllen mit den Werten aus **Supabase → Settings → API**:
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` *(für Seed-Skripte)*
-- `ADMIN_EMAIL` — nur diese E-Mail darf einloggen.
+Werte aus **Supabase → Settings → API** eintragen. **Wichtig:** in Vite müssen alle Client-Vars `VITE_*` heißen.
 
 ### 3. Lokal starten
 
@@ -51,78 +55,100 @@ npm install
 npm run dev
 ```
 
-App läuft auf [http://localhost:3000](http://localhost:3000).
-Beim ersten Öffnen wirst du auf `/login` umgeleitet → E-Mail eingeben → Magic Link aus dem Postfach klicken.
+App läuft auf [http://localhost:8080](http://localhost:8080). Falls die Env-Vars fehlen, landest du auf `/setup` mit einer klaren Anleitung.
 
 ---
 
 ## Architektur
 
 ```
-app/
-  (app)/                # Geschützte Routen (Layout prüft auf User)
-    layout.tsx          # AppShell + Auth-Guard
-    page.tsx            # Home / Dashboard
-    habits/page.tsx
-    money/page.tsx
-    body/page.tsx
-    notes/page.tsx
-    settings/page.tsx
-  auth/
-    callback/route.ts   # Magic-Link → Session-Tausch
-    sign-out/route.ts
-  login/page.tsx
-  layout.tsx            # Root: Fonts, Toaster, dark class
-  globals.css
+src/
+  integrations/
+    supabase/
+      client.ts       # Supabase-Client (oder Stub bei fehlenden Env-Vars)
+      types.ts        # Row-Types passend zu den SQL-Migrationen
+  hooks/
+    useAuth.tsx       # Auth-Provider + useAuth-Hook
+    useMoneyData.ts   # React-Query Hooks für Money-Feature
+    useBodyData.ts    # React-Query Hooks für Body-Feature
+  components/
+    auth/             # ProtectedRoute
+    layout/           # Sidebar, BottomNav, AppShell
+    notes/            # DailyReflectionForm, QuickNotes, BookSection, IdeaBoard
+    money/            # PlanSettingsDialog, EquityProgressCard, ScenarioCards, ...
+    body/             # WorkoutTypePicker, ExerciseSetLogger, WeekHeatmap, ...
+    home/             # GreetingHeader, DailyProgressBar, QuickStats, ... (Dexie)
+    habits/           # HabitCard, HabitHeatmap, NewHabitDialog (Dexie)
+    ui/               # shadcn-Primitive
+  lib/
+    finance/calc.ts   # Pure Berechnungen für Hauskauf (testbar)
+    db.ts             # Dexie-Schema (Legacy für Index/Habits)
+    seed.ts           # Demo-Daten für Dexie
+    streak.ts         # Streak-Berechnung
+    utils.ts          # cn() helper
+    dates.ts          # todayISO()
+  pages/
+    Index.tsx         # Home (Dexie)
+    Habits.tsx        # Habits (Dexie)
+    Money.tsx         # Hauskauf-Plan (Supabase)
+    Notes.tsx         # Reflexion + Notes + Bücher + Ideen (Supabase)
+    Body.tsx          # Workouts + Nutrition + Vitals (Supabase)
+    Login.tsx         # Magic Link
+    AuthCallback.tsx  # Session-Tausch
+    Setup.tsx         # Env-Vars-fehlend-Fallback
+  App.tsx             # Router + Provider-Stack
+  main.tsx            # Entry
 
-components/
-  ui/                   # shadcn-Primitive (Button, Card, Input, Label, ...)
-  layout/               # Sidebar, BottomNav, AppShell
-  ComingSoon.tsx
-
-lib/
-  supabase/
-    client.ts           # Browser-Client
-    server.ts           # Server-Client (RSC, Route Handler)
-    middleware.ts       # Session-Refresh + Single-User-Guard
-  utils.ts              # cn() Helper
-
-middleware.ts           # globaler Auth-Guard
-supabase/migrations/    # SQL-Migrationen
+supabase/migrations/  # SQL-Migrationen für Supabase
 ```
 
 ### Auth-Flow
 
-1. User → `/login` → E-Mail eingeben.
-2. `signInWithOtp` schickt Magic Link.
-3. User klickt Link → Browser landet auf `/auth/callback?code=...`.
-4. Callback-Route tauscht Code gegen Session → Cookies werden gesetzt → Redirect auf `/`.
-5. `middleware.ts` prüft bei jedem Request:
-   - eingeloggt? sonst → `/login`.
-   - Email == `ADMIN_EMAIL`? sonst → `/login?error=not_authorized`.
+1. User → `/login` → E-Mail eingeben → `signInWithOtp`
+2. Supabase schickt Magic Link → User klickt → Browser landet auf `/auth/callback?code=...`
+3. `AuthCallback` ruft `supabase.auth.exchangeCodeForSession(code)` → Session in localStorage
+4. `ProtectedRoute` prüft bei jedem Render:
+   - Supabase konfiguriert? sonst → `/setup`
+   - User eingeloggt? sonst → `/login`
+   - Email == `VITE_ADMIN_EMAIL`? sonst → Logout + `/login?error=not_authorized`
 
 ### Row-Level-Security
 
-Alle Tabellen haben RLS aktiviert mit Policy `auth.uid() = user_id`.
-Selbst wenn jemand das `anon`-Key kennt, kann er nur seine eigenen Rows sehen.
+Alle Supabase-Tabellen haben RLS aktiviert mit Policy `auth.uid() = user_id`. Selbst mit dem `anon`-Key sieht jeder User nur seine eigenen Rows.
 
 ---
 
-## Deployment (Vercel)
+## Deployment
 
-```bash
-vercel --prod
-```
+### Vercel
 
-In Vercel **Project Settings → Environment Variables** dieselben Werte wie in `.env.local` eintragen.
-Außerdem in Supabase die Vercel-URL als zusätzliche **Redirect URL** hinterlegen.
+1. GitHub-Repo verbinden
+2. **Project → Settings → Environment Variables** → die `VITE_*`-Vars setzen (für Production + Preview)
+3. **Auto-Deploy**
+
+### Lovable
+
+Dieses Repo ist Lovable-kompatibel (`vite-config.ts` mit `lovable-tagger` ist drin). Im Lovable-Editor:
+1. Repo importieren
+2. Im Lovable-Settings die Env-Vars setzen
+3. Live-Editor öffnet sich
 
 ---
 
 ## Tests
 
 ```bash
-npm test
+npm test          # einmalig
+npm run test:watch
 ```
 
-Vitest läuft über `vitest.config.ts`. Streak-Logik wird in Etappe 3 als Pure-Function isoliert und getestet.
+Aktuell: 21 Tests (Streak-Logik aus dem Original-Scaffold + 20 für die Hauskauf-Berechnungen).
+
+---
+
+## Lovable-spezifische Hinweise
+
+- **Komponenten-Tagger** (`lovable-tagger` in `vite.config.ts`) ist im Dev-Mode aktiv → Lovable kann Components inline anklicken/editieren.
+- **shadcn-UI** unter `src/components/ui/` — diese Files NICHT direkt editieren, sondern im Code Variants verwenden.
+- **Server-State** läuft komplett über TanStack Query (`useQuery` / `useMutation`) — keine Server Actions, kein SSR.
+- **Pages** sind alle Client-Components, die in `src/App.tsx` per React Router gemountet werden.
