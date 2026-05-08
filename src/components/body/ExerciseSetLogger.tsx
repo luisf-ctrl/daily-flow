@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, FormEvent } from "react";
+import { useState, useRef, useMemo, useEffect, FormEvent } from "react";
 import { Plus, Trash2, TrendingUp } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   type LastSeen,
 } from "@/hooks/useBodyData";
 import { todayISO } from "@/lib/dates";
+import { PREFILL_EVENT } from "./WorkoutOutlineCard";
 import type { ExerciseSet } from "@/integrations/supabase/types";
 
 const COMMON_EXERCISES = [
@@ -57,6 +58,22 @@ export function ExerciseSetLogger({
     return Array.from(map.entries());
   }, [sets]);
 
+  // Hört auf das Prefill-Event aus der WorkoutOutlineCard:
+  // beim Klick einer Übung wird ihr Name hier ins Feld geschrieben,
+  // Gewicht/Reps zurückgesetzt, und der Cursor in das Gewichtsfeld gesetzt.
+  useEffect(() => {
+    function onPrefill(e: Event) {
+      const detail = (e as CustomEvent<{ name: string }>).detail;
+      if (!detail?.name) return;
+      setName(detail.name);
+      setWeight("");
+      setReps("");
+      setTimeout(() => weightRef.current?.focus(), 50);
+    }
+    window.addEventListener(PREFILL_EVENT, onPrefill);
+    return () => window.removeEventListener(PREFILL_EVENT, onPrefill);
+  }, []);
+
   function onSubmit(e: FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
@@ -90,7 +107,7 @@ export function ExerciseSetLogger({
   const pending = add.isPending || remove.isPending;
 
   return (
-    <section>
+    <section id="workout-logger">
       <header className="mb-4 flex items-end justify-between gap-4">
         <div className="space-y-1">
           <p className="label-caps">Workout-Logging</p>
