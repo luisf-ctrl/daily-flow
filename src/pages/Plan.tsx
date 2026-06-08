@@ -22,7 +22,10 @@ import {
   CheckCircle2,
   Circle,
   Info,
+  Check,
 } from "lucide-react";
+import { SwipeRow } from "@/components/plan/SwipeRow";
+import { useDailyChecks } from "@/hooks/useDailyChecks";
 
 /* ============================================================
    STAMMDATEN
