@@ -608,6 +608,71 @@ function DualRing({ dayPct, weekPct }: { dayPct: number; weekPct: number }) {
   );
 }
 
+/* ============================================================
+   DAILY SCORE — Ring + Streak (Apple-Fitness-Style)
+============================================================ */
+
+function totalCheckableIds(isSunday: boolean): string[] {
+  const ids: string[] = [];
+  ROUTINE.forEach((r) => ids.push(`tl:${r.time}`));
+  for (let i = 0; i < 7; i++) ids.push(`chk:${i}`);
+  if (isSunday) for (let i = 0; i < SUNDAY_RITUAL.length; i++) ids.push(`sun:${i}`);
+  return ids;
+}
+
+function DailyScoreCard({ isSunday }: { isSunday: boolean }) {
+  const { checked } = useDailyChecks();
+  const ids = useMemo(() => totalCheckableIds(isSunday), [isSunday]);
+  const total = ids.length;
+  const done = ids.filter((id) => checked.has(id)).length;
+  const pct = total === 0 ? 0 : done / total;
+
+  const size = 92;
+  const stroke = 8;
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const offset = c * (1 - pct);
+
+  return (
+    <section className="rounded-3xl border border-primary/20 bg-gradient-to-br from-primary/[0.06] via-white/[0.02] to-white/[0.01] p-5">
+      <div className="flex items-center gap-5">
+        <div className="relative" style={{ width: size, height: size }}>
+          <svg width={size} height={size} className="-rotate-90">
+            <circle cx={size / 2} cy={size / 2} r={r} stroke="hsl(var(--primary) / 0.12)" strokeWidth={stroke} fill="none" />
+            <motion.circle
+              cx={size / 2} cy={size / 2} r={r}
+              stroke="hsl(var(--primary))" strokeWidth={stroke} strokeLinecap="round" fill="none"
+              strokeDasharray={c}
+              initial={false}
+              animate={{ strokeDashoffset: offset }}
+              transition={{ type: "spring", stiffness: 120, damping: 22 }}
+              style={{ filter: "drop-shadow(0 0 8px hsl(var(--primary) / 0.55))" }}
+            />
+          </svg>
+          <div className="absolute inset-0 flex flex-col items-center justify-center">
+            <span className="font-display text-2xl leading-none text-primary">{Math.round(pct * 100)}</span>
+            <span className="text-[8px] uppercase tracking-[0.2em] text-muted-foreground">Score</span>
+          </div>
+        </div>
+        <div className="flex-1">
+          <p className="label-caps">Heute</p>
+          <p className="mt-1 font-display text-xl leading-tight">
+            {done} / {total}
+            <span className="ml-1 text-xs font-sans text-muted-foreground">erledigt</span>
+          </p>
+          <p className="mt-2 text-[11px] leading-snug text-muted-foreground">
+            Swipe nach rechts oder tap, um Blöcke abzuhaken — kein Tracking, nur Klarheit.
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ============================================================
+   DAILY TIMELINE (Swipe-to-Check)
+============================================================ */
+
 function DailyTimeline() {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -615,55 +680,69 @@ function DailyTimeline() {
     return () => clearInterval(t);
   }, []);
   const activeIdx = currentRoutineIndex(now);
+  const { isChecked, toggle } = useDailyChecks();
 
   return (
     <section>
-      <SectionHead title="Tages-Routine" caption="Mo – Fr" />
+      <SectionHead title="Tages-Routine" caption="Mo – Fr · swipe →" />
       <div className="space-y-3">
         {ROUTINE.map((r, i) => {
           const isActive = i === activeIdx;
           const isPast = i < activeIdx;
           const Icon = r.Icon;
           const isLast = i === ROUTINE.length - 1;
+          const id = `tl:${r.time}`;
+          const done = isChecked(id);
           return (
             <div key={r.time} className="group flex items-stretch gap-4">
               <div className="flex flex-col items-center pt-3">
                 <div className={`h-2 w-2 rounded-full ${
-                  isActive ? "bg-primary ring-4 ring-primary/20 pulse-gold"
-                    : isPast ? "bg-primary/40" : "bg-white/20"
+                  done ? "bg-primary ring-4 ring-primary/30"
+                    : isActive ? "bg-primary ring-4 ring-primary/20 pulse-gold"
+                      : isPast ? "bg-primary/40" : "bg-white/20"
                 }`} />
                 {!isLast && (
                   <div className={`mt-1 w-px flex-1 ${
-                    isPast ? "bg-gradient-to-b from-primary/30 to-white/[0.05]" : "bg-white/[0.05]"
+                    done || isPast ? "bg-gradient-to-b from-primary/30 to-white/[0.05]" : "bg-white/[0.05]"
                   }`} />
                 )}
               </div>
-              <div className={`flex-1 rounded-2xl border p-4 transition-all ${
-                isActive ? "border-primary/30 bg-white/[0.06] shadow-[0_4px_24px_rgba(201,168,76,0.08)]"
-                  : isPast ? "border-white/[0.04] bg-white/[0.02] opacity-60"
-                    : "border-white/[0.05] bg-white/[0.03]"
-              }`}>
-                <div className="mb-1 flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    <p className={`font-mono text-xs font-bold ${
-                      isActive ? "text-primary" : isPast ? "text-muted-foreground" : "text-foreground/70"
-                    }`}>
-                      {r.time}
-                    </p>
-                    <Icon className={`h-3 w-3 ${isActive ? "text-primary" : "text-muted-foreground"}`} />
+              <div className="flex-1">
+                <SwipeRow
+                  done={done}
+                  onToggle={() => toggle(id)}
+                  className={`border p-4 rounded-2xl ${
+                    done ? "border-primary/30 bg-primary/[0.06]"
+                      : isActive ? "border-primary/30 bg-white/[0.06] shadow-[0_4px_24px_rgba(201,168,76,0.08)]"
+                        : isPast ? "border-white/[0.04] bg-white/[0.02]"
+                          : "border-white/[0.05] bg-white/[0.03]"
+                  }`}
+                >
+                  <div className="mb-1 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <p className={`font-mono text-xs font-bold ${
+                        done || isActive ? "text-primary" : isPast ? "text-muted-foreground" : "text-foreground/70"
+                      }`}>
+                        {r.time}
+                      </p>
+                      <Icon className={`h-3 w-3 ${done || isActive ? "text-primary" : "text-muted-foreground"}`} />
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {done && <Check className="h-3 w-3 text-primary" strokeWidth={3} />}
+                      <p className={`text-[10px] uppercase tracking-[0.18em] ${
+                        done ? "text-primary" : isActive ? "font-bold text-primary" : "text-muted-foreground"
+                      }`}>
+                        {done ? "Erledigt" : isActive ? "Jetzt" : r.title}
+                      </p>
+                    </div>
                   </div>
-                  <p className={`text-[10px] uppercase tracking-[0.18em] ${
-                    isActive ? "font-bold text-primary" : "text-muted-foreground"
-                  }`}>
-                    {isActive ? "Jetzt" : r.title}
+                  <p className="text-sm font-medium leading-snug">
+                    {isActive && !done ? r.title : r.desc}
                   </p>
-                </div>
-                <p className="text-sm font-medium leading-snug">
-                  {isActive ? r.title : r.desc}
-                </p>
-                {isActive && (
-                  <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{r.desc}</p>
-                )}
+                  {isActive && !done && (
+                    <p className="mt-1 text-[11px] leading-snug text-muted-foreground">{r.desc}</p>
+                  )}
+                </SwipeRow>
               </div>
             </div>
           );
@@ -674,7 +753,6 @@ function DailyTimeline() {
 }
 
 function DailyChecklist({ phase }: { phase: Phase }) {
-  // Read-only Anzeige; Schritte/Alkohol passen sich der Phase an
   const items = [
     { label: `${phase.stepsTarget.toLocaleString("de-DE")} Schritte`, Icon: Footprints },
     { label: "3 Liter Wasser", Icon: Droplets },
@@ -684,18 +762,30 @@ function DailyChecklist({ phase }: { phase: Phase }) {
     { label: "8 Stunden Schlaf", Icon: Bed },
     { label: "Ernährung eingehalten", Icon: Apple },
   ];
+  const { isChecked, toggle } = useDailyChecks();
   return (
     <section>
-      <SectionHead title="Checkliste" caption="Heute" />
-      <div className="rounded-2xl border border-white/[0.05] bg-white/[0.02] p-2">
+      <SectionHead title="Checkliste" caption="Heute · swipe →" />
+      <div className="space-y-1.5 rounded-2xl border border-white/[0.05] bg-white/[0.02] p-2">
         {items.map((h, i) => {
           const Icon = h.Icon;
+          const id = `chk:${i}`;
+          const done = isChecked(id);
           return (
-            <div key={i} className="flex items-center gap-3 rounded-xl px-3 py-3 hover:bg-white/[0.02]">
-              <Icon className="h-4 w-4 shrink-0 text-primary" />
-              <span className="flex-1 text-sm">{h.label}</span>
-              <Circle className="h-4 w-4 shrink-0 text-muted-foreground/40" />
-            </div>
+            <SwipeRow
+              key={i}
+              done={done}
+              onToggle={() => toggle(id)}
+              className="flex items-center gap-3 rounded-xl bg-white/[0.02] px-3 py-3"
+            >
+              <Icon className={`h-4 w-4 shrink-0 ${done ? "text-primary" : "text-primary"}`} />
+              <span className={`flex-1 text-sm ${done ? "line-through decoration-primary/60" : ""}`}>{h.label}</span>
+              {done ? (
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+              ) : (
+                <Circle className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+              )}
+            </SwipeRow>
           );
         })}
       </div>
@@ -704,22 +794,34 @@ function DailyChecklist({ phase }: { phase: Phase }) {
 }
 
 function SundayRitual() {
+  const { isChecked, toggle } = useDailyChecks();
   return (
     <section>
-      <SectionHead title="Sonntags-Ritual" caption="Wochen-Check" />
-      <div className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-4">
-        <p className="mb-3 text-[11px] leading-relaxed text-muted-foreground">
+      <SectionHead title="Sonntags-Ritual" caption="Wochen-Check · swipe →" />
+      <div className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-3">
+        <p className="mb-3 px-1 text-[11px] leading-relaxed text-muted-foreground">
           Nicht täglich wiegen. Schwankungen von ±1–2 kg sind normal — beurteile den Wochendurchschnitt.
         </p>
         <div className="space-y-1.5">
-          {SUNDAY_RITUAL.map((s) => {
+          {SUNDAY_RITUAL.map((s, i) => {
             const Icon = s.Icon;
+            const id = `sun:${i}`;
+            const done = isChecked(id);
             return (
-              <div key={s.label} className="flex items-center gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5">
+              <SwipeRow
+                key={s.label}
+                done={done}
+                onToggle={() => toggle(id)}
+                className="flex items-center gap-3 rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2.5"
+              >
                 <Icon className="h-4 w-4 shrink-0 text-primary" />
-                <span className="flex-1 text-sm">{s.label}</span>
-                <Circle className="h-4 w-4 shrink-0 text-muted-foreground/40" />
-              </div>
+                <span className={`flex-1 text-sm ${done ? "line-through decoration-primary/60" : ""}`}>{s.label}</span>
+                {done ? (
+                  <CheckCircle2 className="h-4 w-4 shrink-0 text-primary" />
+                ) : (
+                  <Circle className="h-4 w-4 shrink-0 text-muted-foreground/40" />
+                )}
+              </SwipeRow>
             );
           })}
         </div>
