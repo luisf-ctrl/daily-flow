@@ -1,80 +1,58 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700&family=Bebas+Neue&family=JetBrains+Mono:wght@500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Daily Habit Tracker — dark, minimal, warm. All colors HSL. */
+/* Noir & Gold — Apple Fitness inspired plan hub. All colors HSL. */
 @layer base {
   :root {
-    /* Dark by default */
-    --background: 0 0% 4%;          /* #0a0a0a */
-    --foreground: 0 0% 96%;         /* #f5f5f5 */
+    --background: 0 0% 2%;            /* #050505 */
+    --foreground: 0 0% 96%;
 
-    --card: 0 0% 8%;                /* #141414 */
+    --card: 0 0% 4%;                  /* #0a0a0a */
     --card-foreground: 0 0% 96%;
 
-    --popover: 0 0% 8%;
+    --popover: 0 0% 4%;
     --popover-foreground: 0 0% 96%;
 
-    --primary: 24 95% 53%;          /* #f97316 warm orange */
+    --primary: 43 56% 52%;            /* #c9a84c gold */
     --primary-foreground: 0 0% 4%;
+    --primary-glow: 43 76% 75%;       /* #f0d78c light gold */
 
-    --secondary: 0 0% 12%;
+    --secondary: 0 0% 10%;
     --secondary-foreground: 0 0% 96%;
 
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 45%;   /* #737373 */
+    --muted: 0 0% 8%;
+    --muted-foreground: 0 0% 45%;
 
-    --accent: 24 95% 53%;
+    --accent: 43 56% 52%;
     --accent-foreground: 0 0% 4%;
 
-    --success: 142 71% 45%;         /* #22c55e */
+    --success: 142 71% 45%;
     --success-foreground: 0 0% 4%;
 
-    --warning: 48 96% 53%;          /* #eab308 */
+    --warning: 48 96% 53%;
     --warning-foreground: 0 0% 4%;
 
-    --destructive: 0 84% 60%;       /* #ef4444 */
+    --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 96%;
 
-    --border: 0 0% 100%;            /* used with /6 opacity via utility */
+    --border: 0 0% 100%;
     --border-opacity: 0.06;
     --input: 0 0% 14%;
-    --ring: 24 95% 53%;
+    --ring: 43 56% 52%;
 
     --radius: 1rem;
 
-    --sidebar-background: 0 0% 5%;
+    --sidebar-background: 0 0% 3%;
     --sidebar-foreground: 0 0% 96%;
-    --sidebar-primary: 24 95% 53%;
+    --sidebar-primary: 43 56% 52%;
     --sidebar-primary-foreground: 0 0% 4%;
-    --sidebar-accent: 0 0% 10%;
+    --sidebar-accent: 0 0% 8%;
     --sidebar-accent-foreground: 0 0% 96%;
     --sidebar-border: 0 0% 14%;
-    --sidebar-ring: 24 95% 53%;
-  }
-
-  .light {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 4%;
-    --card: 0 0% 98%;
-    --card-foreground: 0 0% 4%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 4%;
-    --primary: 24 95% 53%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 4%;
-    --muted: 0 0% 96%;
-    --muted-foreground: 0 0% 40%;
-    --accent: 24 95% 53%;
-    --accent-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 0%;
-    --input: 0 0% 90%;
-    --ring: 24 95% 53%;
+    --sidebar-ring: 43 56% 52%;
   }
 }
 
@@ -85,12 +63,18 @@
 
   html {
     @apply bg-background text-foreground;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Barlow', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
 
   body {
     @apply bg-background text-foreground;
+    font-family: 'Barlow', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, .font-display {
+    font-family: 'Bebas Neue', system-ui, sans-serif;
+    letter-spacing: 0.01em;
   }
 
   .font-mono {
@@ -100,14 +84,26 @@
 
 @layer components {
   .label-caps {
-    @apply text-[11px] uppercase tracking-[0.1em] text-muted-foreground font-medium;
+    @apply text-[10px] uppercase tracking-[0.2em] text-primary font-semibold;
   }
 
   .surface {
     @apply bg-card rounded-2xl p-6 border border-white/[0.06];
   }
+}
 
-  .stat-number {
-    @apply font-mono text-3xl font-bold tracking-tight text-foreground;
+@layer utilities {
+  .gold-glow {
+    box-shadow: 0 0 24px -4px hsl(var(--primary) / 0.35);
+  }
+  .gold-text-glow {
+    text-shadow: 0 0 16px hsl(var(--primary) / 0.45);
+  }
+  @keyframes pulse-gold {
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--primary) / 0.4); }
+    50% { box-shadow: 0 0 0 6px hsl(var(--primary) / 0); }
+  }
+  .pulse-gold {
+    animation: pulse-gold 2.4s ease-out infinite;
   }
 }
