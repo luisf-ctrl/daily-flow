@@ -417,6 +417,7 @@ export default function Plan() {
               transition={{ duration: 0.25 }}
               className="space-y-7"
             >
+              <DailyScoreCard isSunday={todayDow === 7} />
               <TodayHero today={today} phase={phase} />
               <DailyTimeline />
               <DailyChecklist phase={phase} />
